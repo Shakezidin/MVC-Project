@@ -1,9 +1,29 @@
-.PHONY: build run test lint clean docker-up docker-down migrate seed swagger tidy
+SHELL := bash
+
+.PHONY: build run test lint clean docker-up docker-down migrate seed seed-go swagger tidy
 
 APP_NAME := bank-server
 BUILD_DIR := bin
 MAIN_PKG := ./cmd/server
 
+# DB CONFIG (can override via environment variables)
+DB_HOST ?= localhost
+DB_PORT ?= 5432
+DB_USER ?= postgres
+DB_PASSWORD ?= postgres
+DB_NAME ?= bankdb
+
+# IMPORTANT: set password for psql
+export PGPASSWORD := $(DB_PASSWORD)
+
+# If psql is not in PATH, uncomment and fix this:
+# PSQL := "/c/Program Files/PostgreSQL/18/bin/psql"
+PSQL := psql
+
+
+# -----------------------
+# BUILD
+# -----------------------
 build:
 	@echo "Building $(APP_NAME)..."
 	@mkdir -p $(BUILD_DIR)
@@ -13,38 +33,62 @@ run: build
 	@echo "Running $(APP_NAME)..."
 	./$(BUILD_DIR)/$(APP_NAME)
 
+
+# -----------------------
+# DATABASE MIGRATIONS
+# -----------------------
+migrate:
+	@echo "Running migrations..."
+	@for %%f in (migrations\*.up.sql) do \
+		"C:\Program Files\PostgreSQL\18\bin\psql.exe" -h localhost -p 5432 -U postgres -d bankdb -f "%%f"
+
+
+# -----------------------
+# SEED DATA
+# -----------------------
+seed:
+	@echo "Seeding database..."
+	$(PSQL) -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f migrations/seed.sql
+	@echo "Seeding completed."
+
+
+seed-go:
+	go run ./cmd/seed
+
+
+# -----------------------
+# TESTING
+# -----------------------
 test:
-	@echo "Running tests..."
 	go test -v -race -cover ./...
 
-test-unit:
-	@echo "Running unit tests..."
-	go test -v -short ./internal/...
-
-test-integration:
-	@echo "Running integration tests..."
-	go test -v -tags=integration ./tests/...
-
 lint:
-	@echo "Running linter..."
 	go vet ./...
 	gofmt -l .
 
+
+# -----------------------
+# CLEAN
+# -----------------------
 clean:
-	@echo "Cleaning..."
 	rm -rf $(BUILD_DIR)
 	go clean
+
 
 tidy:
 	go mod tidy
 
+
+# -----------------------
+# SWAGGER
+# -----------------------
 swagger:
-	@echo "Generating Swagger docs..."
 	swag init -g cmd/server/main.go -o docs
 
-docker-build:
-	docker compose build
 
+# -----------------------
+# DOCKER
+# -----------------------
 docker-up:
 	docker compose up -d
 
@@ -53,17 +97,3 @@ docker-down:
 
 docker-logs:
 	docker compose logs -f app
-
-migrate:
-	bash scripts/migrate.sh
-
-seed:
-	bash scripts/seed.sh
-
-seed-go:
-	go run ./cmd/seed
-
-dev: docker-up
-	@echo "Waiting for services..."
-	sleep 5
-	$(MAKE) run
