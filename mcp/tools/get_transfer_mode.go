@@ -41,7 +41,6 @@ func (t *GetTransferModesTool) Handler(
 	req *mcp.CallToolRequest,
 	input GetTransferModesInput,
 ) (*mcp.CallToolResult, GetTransferModesOutput, error) {
-
 	var response types.MCPResponse
 
 	err := t.BankClient.Get(

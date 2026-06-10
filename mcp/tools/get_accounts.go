@@ -39,7 +39,6 @@ func (t *GetAccountsTool) Handler(
 	req *mcp.CallToolRequest,
 	input GetAccountsInput,
 ) (*mcp.CallToolResult, GetAccountsOutput, error) {
-
 	var response types.MCPResponse
 
 	err := t.BankClient.Get(
@@ -66,5 +65,4 @@ func (t *GetAccountsTool) Handler(
 			Content: string(bytes),
 		},
 		nil
-
 }

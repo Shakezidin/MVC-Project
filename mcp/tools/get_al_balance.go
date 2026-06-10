@@ -41,7 +41,6 @@ func (t *GetAllBalancesTool) Handler(
 	req *mcp.CallToolRequest,
 	input GetAllBalancesInput,
 ) (*mcp.CallToolResult, GetAllBalancesOutput, error) {
-
 	var response types.MCPResponse
 
 	err := t.BankClient.Get(

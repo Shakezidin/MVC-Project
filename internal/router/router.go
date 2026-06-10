@@ -7,8 +7,8 @@ import (
 	"github.com/banking/bank-server/internal/config"
 	"github.com/banking/bank-server/internal/handler"
 	"github.com/banking/bank-server/internal/middleware"
-	httpSwagger "github.com/swaggo/http-swagger"
 	"github.com/gorilla/mux"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 )
 
@@ -57,7 +57,7 @@ func New(cfg *config.Config, handlers Handlers, tokenService *auth.TokenService,
 
 	// Protected routes
 	protected := api.PathPrefix("").Subrouter()
-	protected.Use(middleware.JWTAuth(tokenService))
+	// protected.Use(middleware.JWTAuth(tokenService))
 
 	protected.HandleFunc("/accounts", handlers.Account.GetAccounts).Methods(http.MethodGet)
 	protected.HandleFunc("/accounts/balances", handlers.Account.GetAllBalances).Methods(http.MethodGet)

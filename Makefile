@@ -24,14 +24,14 @@ PSQL := psql
 # -----------------------
 # BUILD
 # -----------------------
-build:
+build: 
 	@echo "Building $(APP_NAME)..."
 	@mkdir -p $(BUILD_DIR)
 	go build -o $(BUILD_DIR)/$(APP_NAME) $(MAIN_PKG)
 
 run: build
 	@echo "Running $(APP_NAME)..."
-	./$(MAIN_PKG)/$(APP_NAME)
+	./$(BUILD_DIR)/$(APP_NAME)
 
 
 # -----------------------
@@ -97,3 +97,30 @@ docker-down:
 
 docker-logs:
 	docker compose logs -f app
+
+
+MCP_APP_NAME := bank-mcp-server
+MCP_BUILD_DIR := mcp_bin
+MCP_MAIN_FILE := ./cmd/mcp/.
+
+mcp_run:
+	@echo "Starting MCP Server..."
+	@echo $(MCP_MAIN_FILE)
+	go run $(MCP_MAIN_FILE)/main.go
+
+mcp_build:
+	@echo "Building MCP Server..."
+	@mkdir -p $(MCP_BUILD_DIR)
+	go build -o $(MCP_BUILD_DIR)/$(MCP_APP_NAME) $(MCP_MAIN_FILE)
+
+mcp_dev:
+	@echo "Running MCP Server in development mode..."
+	air
+
+mcp_tidy:
+	@echo "Tidying go modules..."
+	go mod tidy
+
+mcp_clean:
+	@echo "Cleaning build files..."
+	rm -rf $(MCP_BUILD_DIR)

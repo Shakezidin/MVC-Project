@@ -41,7 +41,6 @@ func (t *GetBeneficiariesTool) Handler(
 	req *mcp.CallToolRequest,
 	input GetBeneficiariesInput,
 ) (*mcp.CallToolResult, GetBeneficiariesOutput, error) {
-
 	var response types.MCPResponse
 
 	err := t.BankClient.Get(

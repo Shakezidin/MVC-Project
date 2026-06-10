@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/banking/bank-server/internal/logger"
@@ -123,15 +123,12 @@ func main() {
 	*/
 	log.Sugar().Info("Starting Bank MCP Server...")
 
-	err = server.Run(
-		context.Background(),
-		&mcp.StdioTransport{},
-	)
+	handler := http.Handler(mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {
+		return server
+	}, nil))
 
-	if err != nil {
-		log.Sugar().Errorf(
-			"failed to start MCP server: %v",
-			err,
-		)
+	// Run the server over stdin/stdout, until the client disconnects.
+	if err := http.ListenAndServe(":8082", handler); err != nil {
+		log.Info("Server failed: %v")
 	}
 }
