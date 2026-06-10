@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
-	"bank-mcp-server/internal/client"
-	"bank-mcp-server/internal/config"
-	"bank-mcp-server/internal/tools"
+	"github.com/banking/bank-server/mcp/client"
+	"github.com/banking/bank-server/mcp/config"
+	"github.com/banking/bank-server/mcp/tools"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
