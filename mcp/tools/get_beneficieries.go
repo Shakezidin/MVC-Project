@@ -43,8 +43,10 @@ func (t *GetBeneficiariesTool) Handler(
 ) (*mcp.CallToolResult, GetBeneficiariesOutput, error) {
 	var response types.MCPResponse
 
+	authTocken := req.Extra.Header.Get("Authorization")
 	err := t.BankClient.Get(
 		"/api/v1/beneficiaries",
+		authTocken,
 		&response,
 	)
 

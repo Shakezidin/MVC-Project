@@ -43,8 +43,10 @@ func (t *GetTransferModesTool) Handler(
 ) (*mcp.CallToolResult, GetTransferModesOutput, error) {
 	var response types.MCPResponse
 
+	authTocken := req.Extra.Header.Get("Authorization")
 	err := t.BankClient.Get(
 		"/api/v1/transfer-modes",
+		authTocken,
 		&response,
 	)
 

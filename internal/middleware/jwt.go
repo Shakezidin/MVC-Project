@@ -7,13 +7,15 @@ import (
 	"github.com/banking/bank-server/internal/auth"
 	"github.com/banking/bank-server/internal/response"
 	"github.com/banking/bank-server/internal/utils"
+	"go.uber.org/zap"
 )
 
 // JWTAuth validates Bearer tokens and injects user context.
-func JWTAuth(tokenService *auth.TokenService) func(http.Handler) http.Handler {
+func JWTAuth(tokenService *auth.TokenService, logger *zap.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
+			logger.Info("Authorization is " + authHeader)
 			if authHeader == "" {
 				response.Error(w, r, http.StatusUnauthorized,
 					"authorization header required", response.ErrCodeUnauthorized, nil)

@@ -43,8 +43,10 @@ func (t *GetAllBalancesTool) Handler(
 ) (*mcp.CallToolResult, GetAllBalancesOutput, error) {
 	var response types.MCPResponse
 
+	authTocken := req.Extra.Header.Get("Authorization")
 	err := t.BankClient.Get(
 		"/api/v1/accounts/balances",
+		authTocken,
 		&response,
 	)
 

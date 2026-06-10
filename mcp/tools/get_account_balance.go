@@ -59,8 +59,10 @@ func (t *GetAccountBalanceTool) Handler(
 		input.AccountID,
 	)
 
+	authTocken := req.Extra.Header.Get("Authorization")
 	err := t.BankClient.Get(
 		path,
+		authTocken,
 		&response,
 	)
 

@@ -40,7 +40,6 @@ func main() {
 	*/
 	bankClient := client.NewBankClient(
 		cfg.BankAPIBaseURL,
-		cfg.JWTToken,
 	)
 
 	/*

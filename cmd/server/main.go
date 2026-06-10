@@ -91,7 +91,7 @@ func run() error {
 	v := validator.New()
 	handlers := router.Handlers{
 		Auth:         handler.NewAuthHandler(authService, v),
-		Account:      handler.NewAccountHandler(accountService),
+		Account:      handler.NewAccountHandler(accountService, log),
 		Beneficiary:  handler.NewBeneficiaryHandler(beneficiaryService),
 		TransferMode: handler.NewTransferModeHandler(transferModeService),
 		Health:       handler.NewHealthHandler(healthService),

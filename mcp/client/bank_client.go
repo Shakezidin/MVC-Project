@@ -14,7 +14,6 @@ type BankClient struct {
 
 func NewBankClient(
 	baseURL string,
-	token string,
 ) *BankClient {
 
 	client := resty.New()
@@ -30,10 +29,6 @@ func NewBankClient(
 		"application/json",
 	)
 
-	if token != "" {
-		client.SetAuthToken(token)
-	}
-
 	return &BankClient{
 		client:  client,
 		baseURL: baseURL,
@@ -42,12 +37,20 @@ func NewBankClient(
 
 func (b *BankClient) Get(
 	path string,
+	token string,
 	result interface{},
 ) error {
 
-	resp, err := b.client.R().
-		SetResult(result).
-		Get(fmt.Sprintf("%s%s", b.baseURL, path))
+	request := b.client.R().
+		SetResult(result)
+
+	if token != "" {
+		request.SetAuthToken(token)
+	}
+
+	resp, err := request.Get(
+		fmt.Sprintf("%s%s", b.baseURL, path),
+	)
 
 	if err != nil {
 		return err

@@ -57,7 +57,7 @@ func New(cfg *config.Config, handlers Handlers, tokenService *auth.TokenService,
 
 	// Protected routes
 	protected := api.PathPrefix("").Subrouter()
-	// protected.Use(middleware.JWTAuth(tokenService))
+	protected.Use(middleware.JWTAuth(tokenService, log))
 
 	protected.HandleFunc("/accounts", handlers.Account.GetAccounts).Methods(http.MethodGet)
 	protected.HandleFunc("/accounts/balances", handlers.Account.GetAllBalances).Methods(http.MethodGet)

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/banking/bank-server/internal/response"
@@ -58,6 +59,7 @@ func (h *AccountHandler) GetAccounts(w http.ResponseWriter, r *http.Request) {
 // @Failure      401 {object} response.APIResponse
 // @Router       /api/v1/accounts/balances [get]
 func (h *AccountHandler) GetAllBalances(w http.ResponseWriter, r *http.Request) {
+
 	userID, err := userIDFromContext(r)
 	if err != nil {
 		handleError(w, r, err)
@@ -66,6 +68,7 @@ func (h *AccountHandler) GetAllBalances(w http.ResponseWriter, r *http.Request) 
 
 	balances, err := h.accountService.GetAllBalances(r.Context(), userID)
 	if err != nil {
+		fmt.Println("error ", err)
 		handleError(w, r, err)
 		return
 	}
