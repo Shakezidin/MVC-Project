@@ -1,7 +1,6 @@
 package config
 
 import (
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -10,13 +9,17 @@ import (
 type Config struct {
 	BankAPIBaseURL string
 	JWTToken       string
-	LogLevel       string
+	Log            LogConfig
+}
+
+type LogConfig struct {
+	Level string
 }
 
 func Load() *Config {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("No .env file found")
+		panic("No .env file found")
 	}
 
 	return &Config{
@@ -30,10 +33,11 @@ func Load() *Config {
 			"",
 		),
 
-		LogLevel: getEnv(
-			"LOG_LEVEL",
-			"info",
-		),
+		Log: LogConfig{
+			Level: getEnv(
+				"LOG_LEVEL",
+				"info",
+			)},
 	}
 }
 

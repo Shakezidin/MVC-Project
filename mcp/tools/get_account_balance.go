@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"bank-mcp-server/internal/client"
-	"bank-mcp-server/internal/types"
+	"github.com/banking/bank-server/mcp/client"
+	"github.com/banking/bank-server/mcp/types"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

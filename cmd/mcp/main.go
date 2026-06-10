@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"os"
 
+	"github.com/banking/bank-server/internal/logger"
 	"github.com/banking/bank-server/mcp/client"
 	"github.com/banking/bank-server/mcp/config"
 	"github.com/banking/bank-server/mcp/tools"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -18,6 +22,16 @@ func main() {
 		==================================================
 	*/
 	cfg := config.Load()
+
+	// Initialize structured logger
+	log, err := logger.New(cfg.Log.Level)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "fatal error: %v\n", err)
+		os.Exit(1)
+	}
+	defer log.Sync()
+
+	log.Sugar().Info("starting bank-server", zap.String("env", cfg.Log.Level))
 
 	/*
 		==================================================
@@ -107,15 +121,15 @@ func main() {
 		START SERVER
 		==================================================
 	*/
-	log.Println("Starting Bank MCP Server...")
+	log.Sugar().Info("Starting Bank MCP Server...")
 
-	err := server.Run(
+	err = server.Run(
 		context.Background(),
 		&mcp.StdioTransport{},
 	)
 
 	if err != nil {
-		log.Fatalf(
+		log.Sugar().Errorf(
 			"failed to start MCP server: %v",
 			err,
 		)
