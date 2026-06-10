@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 
 	"bank-mcp-server/internal/client"
 	"bank-mcp-server/internal/types"
@@ -11,6 +12,12 @@ import (
 
 type GetTransferModesTool struct {
 	BankClient *client.BankClient
+}
+
+type GetTransferModesInput struct{}
+
+type GetTransferModesOutput struct {
+	Content string `json:"content"`
 }
 
 func NewGetTransferModesTool(
@@ -31,8 +38,9 @@ func (t *GetTransferModesTool) Definition() *mcp.Tool {
 
 func (t *GetTransferModesTool) Handler(
 	ctx context.Context,
-	request *mcp.CallToolRequest,
-) (*mcp.CallToolResult, error) {
+	req *mcp.CallToolRequest,
+	input GetTransferModesInput,
+) (*mcp.CallToolResult, GetTransferModesOutput, error) {
 
 	var response types.MCPResponse
 
@@ -42,8 +50,21 @@ func (t *GetTransferModesTool) Handler(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, GetTransferModesOutput{}, err
 	}
 
-	return JSONResponse(response)
+	bytes, err := json.MarshalIndent(
+		response,
+		"",
+		"  ",
+	)
+
+	if err != nil {
+		return nil, GetTransferModesOutput{}, err
+	}
+	return nil,
+		GetTransferModesOutput{
+			Content: string(bytes),
+		},
+		nil
 }

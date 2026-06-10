@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 
 	"bank-mcp-server/internal/client"
 	"bank-mcp-server/internal/types"
@@ -11,6 +12,12 @@ import (
 
 type GetBeneficiariesTool struct {
 	BankClient *client.BankClient
+}
+
+type GetBeneficiariesInput struct{}
+
+type GetBeneficiariesOutput struct {
+	Content string `json:"content"`
 }
 
 func NewGetBeneficiariesTool(
@@ -31,8 +38,9 @@ func (t *GetBeneficiariesTool) Definition() *mcp.Tool {
 
 func (t *GetBeneficiariesTool) Handler(
 	ctx context.Context,
-	request *mcp.CallToolRequest,
-) (*mcp.CallToolResult, error) {
+	req *mcp.CallToolRequest,
+	input GetBeneficiariesInput,
+) (*mcp.CallToolResult, GetBeneficiariesOutput, error) {
 
 	var response types.MCPResponse
 
@@ -42,8 +50,22 @@ func (t *GetBeneficiariesTool) Handler(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, GetBeneficiariesOutput{}, err
 	}
 
-	return JSONResponse(response)
+	bytes, err := json.MarshalIndent(
+		response,
+		"",
+		"  ",
+	)
+
+	if err != nil {
+		return nil, GetBeneficiariesOutput{}, err
+	}
+
+	return nil,
+		GetBeneficiariesOutput{
+			Content: string(bytes),
+		},
+		nil
 }

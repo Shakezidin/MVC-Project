@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 
 	"bank-mcp-server/internal/client"
 	"bank-mcp-server/internal/types"
@@ -11,6 +12,12 @@ import (
 
 type GetAllBalancesTool struct {
 	BankClient *client.BankClient
+}
+
+type GetAllBalancesInput struct{}
+
+type GetAllBalancesOutput struct {
+	Content string `json:"content"`
 }
 
 func NewGetAllBalancesTool(
@@ -31,8 +38,9 @@ func (t *GetAllBalancesTool) Definition() *mcp.Tool {
 
 func (t *GetAllBalancesTool) Handler(
 	ctx context.Context,
-	request *mcp.CallToolRequest,
-) (*mcp.CallToolResult, error) {
+	req *mcp.CallToolRequest,
+	input GetAllBalancesInput,
+) (*mcp.CallToolResult, GetAllBalancesOutput, error) {
 
 	var response types.MCPResponse
 
@@ -42,8 +50,20 @@ func (t *GetAllBalancesTool) Handler(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, GetAllBalancesOutput{}, err
 	}
 
-	return JSONResponse(response)
+	bytes, err := json.MarshalIndent(
+		response,
+		"",
+		"  ",
+	)
+
+	if err != nil {
+		return nil, GetAllBalancesOutput{}, err
+	}
+
+	return nil, GetAllBalancesOutput{
+		Content: string(bytes),
+	}, nil
 }

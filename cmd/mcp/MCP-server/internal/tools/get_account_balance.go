@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"bank-mcp-server/internal/client"
@@ -14,6 +15,14 @@ type GetAccountBalanceTool struct {
 	BankClient *client.BankClient
 }
 
+type GetAccountBalanceInput struct {
+	AccountID string `json:"account_id"`
+}
+
+type GetAccountBalanceOutput struct {
+	Content string `json:"content"`
+}
+
 func NewGetAccountBalanceTool(
 	bankClient *client.BankClient,
 ) *GetAccountBalanceTool {
@@ -21,43 +30,33 @@ func NewGetAccountBalanceTool(
 	return &GetAccountBalanceTool{
 		BankClient: bankClient,
 	}
+
 }
 
 func (t *GetAccountBalanceTool) Definition() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "get_account_balance",
 		Description: "Get balance of specific account",
-
-		InputSchema: mcp.ToolInputSchema{
-			Type: "object",
-
-			Properties: map[string]interface{}{
-				"account_id": map[string]interface{}{
-					"type": "string",
-				},
-			},
-
-			Required: []string{"account_id"},
-		},
 	}
 }
 
 func (t *GetAccountBalanceTool) Handler(
 	ctx context.Context,
-	request *mcp.CallToolRequest,
-) (*mcp.CallToolResult, error) {
+	req *mcp.CallToolRequest,
+	input GetAccountBalanceInput,
+) (*mcp.CallToolResult, GetAccountBalanceOutput, error) {
 
-	accountID, ok := request.Params.Arguments["account_id"].(string)
-
-	if !ok || accountID == "" {
-		return nil, fmt.Errorf("account_id is required")
+	if input.AccountID == "" {
+		return nil, GetAccountBalanceOutput{}, fmt.Errorf(
+			"account_id is required",
+		)
 	}
 
 	var response types.MCPResponse
 
 	path := fmt.Sprintf(
 		"/api/v1/accounts/%s/balance",
-		accountID,
+		input.AccountID,
 	)
 
 	err := t.BankClient.Get(
@@ -66,8 +65,22 @@ func (t *GetAccountBalanceTool) Handler(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, GetAccountBalanceOutput{}, err
 	}
 
-	return JSONResponse(response)
+	bytes, err := json.MarshalIndent(
+		response,
+		"",
+		"  ",
+	)
+
+	if err != nil {
+		return nil, GetAccountBalanceOutput{}, err
+	}
+
+	return nil,
+		GetAccountBalanceOutput{
+			Content: string(bytes),
+		},
+		nil
 }

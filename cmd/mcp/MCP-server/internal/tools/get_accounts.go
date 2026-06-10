@@ -2,6 +2,7 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 
 	"bank-mcp-server/internal/client"
 	"bank-mcp-server/internal/types"
@@ -13,13 +14,17 @@ type GetAccountsTool struct {
 	BankClient *client.BankClient
 }
 
-func NewGetAccountsTool(
-	bankClient *client.BankClient,
-) *GetAccountsTool {
+type GetAccountsInput struct{}
 
+type GetAccountsOutput struct {
+	Content string `json:"content"`
+}
+
+func NewGetAccountsTool(bankClient *client.BankClient) *GetAccountsTool {
 	return &GetAccountsTool{
 		BankClient: bankClient,
 	}
+
 }
 
 func (t *GetAccountsTool) Definition() *mcp.Tool {
@@ -31,8 +36,9 @@ func (t *GetAccountsTool) Definition() *mcp.Tool {
 
 func (t *GetAccountsTool) Handler(
 	ctx context.Context,
-	request *mcp.CallToolRequest,
-) (*mcp.CallToolResult, error) {
+	req *mcp.CallToolRequest,
+	input GetAccountsInput,
+) (*mcp.CallToolResult, GetAccountsOutput, error) {
 
 	var response types.MCPResponse
 
@@ -42,8 +48,23 @@ func (t *GetAccountsTool) Handler(
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, GetAccountsOutput{}, err
 	}
 
-	return JSONResponse(response)
+	bytes, err := json.MarshalIndent(
+		response,
+		"",
+		"  ",
+	)
+
+	if err != nil {
+		return nil, GetAccountsOutput{}, err
+	}
+
+	return nil,
+		GetAccountsOutput{
+			Content: string(bytes),
+		},
+		nil
+
 }
