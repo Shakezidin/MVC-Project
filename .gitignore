@@ -17,3 +17,6 @@ Thumbs.db
 # Test
 coverage.out
 coverage.html
+
+#secrets
+./gcp-key.json
