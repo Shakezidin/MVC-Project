@@ -21,7 +21,7 @@ import (
 	"github.com/banking/bank-server/internal/cache"
 	"github.com/banking/bank-server/internal/config"
 	"github.com/banking/bank-server/internal/handler"
-	"github.com/banking/bank-server/internal/logger"
+	"github.com/banking/bank-server/internal/observability"
 	"github.com/banking/bank-server/internal/repository"
 	"github.com/banking/bank-server/internal/router"
 	"github.com/banking/bank-server/internal/service"
@@ -43,10 +43,14 @@ func run() error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	// Initialize structured logger
-	log, err := logger.New(cfg.Log.Level)
+	log, err := observability.NewLogger(
+		"bank-server",
+		"tempBankLogs",
+		"MyTopic",
+	)
 	if err != nil {
-		return fmt.Errorf("init logger: %w", err)
+		fmt.Fprintf(os.Stderr, "fatal error: %v\n", err)
+		os.Exit(1)
 	}
 	defer log.Sync()
 

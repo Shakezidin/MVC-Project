@@ -52,9 +52,9 @@ type RedisConfig struct {
 }
 
 type JWTConfig struct {
-	Secret     string
-	Expiry     time.Duration
-	Issuer     string
+	Secret string
+	Expiry time.Duration
+	Issuer string
 }
 
 type LogConfig struct {
@@ -62,9 +62,9 @@ type LogConfig struct {
 }
 
 type CacheConfig struct {
-	AccountListTTL    time.Duration
+	AccountListTTL     time.Duration
 	BeneficiaryListTTL time.Duration
-	TransferModesTTL  time.Duration
+	TransferModesTTL   time.Duration
 }
 
 // Load reads environment variables and returns a validated Config.
@@ -101,7 +101,7 @@ func Load() (*Config, error) {
 			DB:       getIntEnv("REDIS_DB", 0),
 		},
 		JWT: JWTConfig{
-			Secret: getEnv("JWT_SECRET", ""),
+			Secret: getEnv("JWT_SECRET", "sothaskdfbahadjkhjahbfajhbfjqhbfsafhbajfhbajfhbsajbhings"),
 			Expiry: getDurationEnv("JWT_EXPIRY", 24*time.Hour),
 			Issuer: getEnv("JWT_ISSUER", "bank-server"),
 		},

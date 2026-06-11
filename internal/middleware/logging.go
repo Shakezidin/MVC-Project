@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/banking/bank-server/internal/logger"
+	"github.com/banking/bank-server/internal/observability"
 	"github.com/banking/bank-server/internal/utils"
 	"go.uber.org/zap"
 )
@@ -33,7 +33,7 @@ func Logging(log *zap.Logger) func(http.Handler) http.Handler {
 			requestID := utils.RequestIDFromContext(r.Context())
 			userID := utils.UserIDFromContext(r.Context())
 
-			reqLog := logger.WithRequestContext(log, requestID, r.Method, r.URL.Path, userID)
+			reqLog := observability.WithRequestContext(log, requestID, r.Method, r.URL.Path, userID)
 			reqLog.Info("request completed",
 				zap.Int("status_code", wrapped.statusCode),
 				zap.Duration("latency", latency),
