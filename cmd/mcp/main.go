@@ -16,40 +16,26 @@ import (
 )
 
 func main() {
-	/*
-		==================================================
-		LOAD CONFIG
-		==================================================
-	*/
 	cfg := config.Load()
 
 	log, err := observability.NewLogger(
 		"MCP-server",
-		"tempBankLogs",
-		"MCPServerLogs",
+		cfg.PubSub.ProjectID,
+		cfg.PubSub.TopicID,
+		cfg.Log.Level,
 	)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "fatal error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "fatal error creating logger: %v\n", err)
 		os.Exit(1)
 	}
 	defer log.Sync()
 
-	log.Sugar().Info("starting bank-server", zap.String("env", cfg.Log.Level))
+	log.Info("starting MCP server", zap.String("config", cfg.String()))
 
-	/*
-		==================================================
-		INITIALIZE BANK CLIENT
-		==================================================
-	*/
 	bankClient := client.NewBankClient(
 		cfg.BankAPIBaseURL,
 	)
 
-	/*
-		==================================================
-		CREATE MCP SERVER
-		==================================================
-	*/
 	server := mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "bank-mcp-server",
@@ -58,79 +44,25 @@ func main() {
 		nil,
 	)
 
-	/*
-		==================================================
-		INITIALIZE TOOLS
-		==================================================
-	*/
-	getAccountsTool := tools.NewGetAccountsTool(
-		bankClient,
-	)
+	getAccountsTool := tools.NewGetAccountsTool(bankClient)
+	getAllBalancesTool := tools.NewGetAllBalancesTool(bankClient)
+	getAccountBalanceTool := tools.NewGetAccountBalanceTool(bankClient)
+	getBeneficiariesTool := tools.NewGetBeneficiariesTool(bankClient)
+	getTransferModesTool := tools.NewGetTransferModesTool(bankClient)
 
-	getAllBalancesTool := tools.NewGetAllBalancesTool(
-		bankClient,
-	)
+	mcp.AddTool(server, getAccountsTool.Definition(), getAccountsTool.Handler)
+	mcp.AddTool(server, getAllBalancesTool.Definition(), getAllBalancesTool.Handler)
+	mcp.AddTool(server, getAccountBalanceTool.Definition(), getAccountBalanceTool.Handler)
+	mcp.AddTool(server, getBeneficiariesTool.Definition(), getBeneficiariesTool.Handler)
+	mcp.AddTool(server, getTransferModesTool.Definition(), getTransferModesTool.Handler)
 
-	getAccountBalanceTool := tools.NewGetAccountBalanceTool(
-		bankClient,
-	)
-
-	getBeneficiariesTool := tools.NewGetBeneficiariesTool(
-		bankClient,
-	)
-
-	getTransferModesTool := tools.NewGetTransferModesTool(
-		bankClient,
-	)
-
-	/*
-		==================================================
-		REGISTER TOOLS
-		==================================================
-	*/
-	mcp.AddTool(
-		server,
-		getAccountsTool.Definition(),
-		getAccountsTool.Handler,
-	)
-
-	mcp.AddTool(
-		server,
-		getAllBalancesTool.Definition(),
-		getAllBalancesTool.Handler,
-	)
-
-	mcp.AddTool(
-		server,
-		getAccountBalanceTool.Definition(),
-		getAccountBalanceTool.Handler,
-	)
-
-	mcp.AddTool(
-		server,
-		getBeneficiariesTool.Definition(),
-		getBeneficiariesTool.Handler,
-	)
-
-	mcp.AddTool(
-		server,
-		getTransferModesTool.Definition(),
-		getTransferModesTool.Handler,
-	)
-
-	/*
-		==================================================
-		START SERVER
-		==================================================
-	*/
-	log.Sugar().Info("Starting Bank MCP Server...")
+	log.Info("Starting Bank MCP Server...")
 
 	handler := http.Handler(mcp.NewStreamableHTTPHandler(func(req *http.Request) *mcp.Server {
 		return server
 	}, nil))
 
-	// Run the server over stdin/stdout, until the client disconnects.
 	if err := http.ListenAndServe(":8082", handler); err != nil {
-		log.Info("Server failed: %v")
+		log.Fatal("Server failed", zap.Error(err))
 	}
 }

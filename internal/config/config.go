@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -19,6 +20,7 @@ type Config struct {
 	JWT      JWTConfig
 	Log      LogConfig
 	Cache    CacheConfig
+	PubSub   PubSubConfig
 }
 
 type ServerConfig struct {
@@ -67,9 +69,13 @@ type CacheConfig struct {
 	TransferModesTTL   time.Duration
 }
 
+type PubSubConfig struct {
+	ProjectID string
+	TopicID   string
+}
+
 // Load reads environment variables and returns a validated Config.
 func Load() (*Config, error) {
-	// .env is optional in production; Docker/K8s inject vars directly.
 	_ = godotenv.Load()
 
 	cfg := &Config{
@@ -101,7 +107,7 @@ func Load() (*Config, error) {
 			DB:       getIntEnv("REDIS_DB", 0),
 		},
 		JWT: JWTConfig{
-			Secret: getEnv("JWT_SECRET", "sothaskdfbahadjkhjahbfajhbfjqhbfsafhbajfhbajfhbsajbhings"),
+			Secret: getEnv("JWT_SECRET", ""),
 			Expiry: getDurationEnv("JWT_EXPIRY", 24*time.Hour),
 			Issuer: getEnv("JWT_ISSUER", "bank-server"),
 		},
@@ -112,6 +118,10 @@ func Load() (*Config, error) {
 			AccountListTTL:     getDurationEnv("CACHE_ACCOUNT_LIST_TTL", 5*time.Minute),
 			BeneficiaryListTTL: getDurationEnv("CACHE_BENEFICIARY_LIST_TTL", 5*time.Minute),
 			TransferModesTTL:   getDurationEnv("CACHE_TRANSFER_MODES_TTL", 1*time.Hour),
+		},
+		PubSub: PubSubConfig{
+			ProjectID: getEnv("GCP_PROJECT_ID", "tempBankLogs"),
+			TopicID:   getEnv("GCP_PUBSUB_TOPIC_ID", "bankServerLogs"),
 		},
 	}
 
@@ -138,6 +148,56 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("DB_PASSWORD is required")
 	}
 	return nil
+}
+
+// String returns a string representation of the config with sensitive fields masked.
+func (c *Config) String() string {
+	return fmt.Sprintf(
+		"Config{Server: %+v, Database: %+v, Redis: %+v, JWT: {Secret: %s, Expiry: %v, Issuer: %s}, Log: %+v, Cache: %+v, PubSub: %+v}",
+		c.Server,
+		c.Database.masked(),
+		c.Redis.masked(),
+		maskSecret(c.JWT.Secret),
+		c.JWT.Expiry,
+		c.JWT.Issuer,
+		c.Log,
+		c.Cache,
+		c.PubSub,
+	)
+}
+
+func (d DatabaseConfig) masked() string {
+	return fmt.Sprintf(
+		"DatabaseConfig{Host: %s, Port: %s, User: %s, Password: %s, Name: %s, SSLMode: %s, MaxOpenConns: %d, MaxIdleConns: %d, ConnMaxLifetime: %v}",
+		d.Host,
+		d.Port,
+		d.User,
+		maskSecret(d.Password),
+		d.Name,
+		d.SSLMode,
+		d.MaxOpenConns,
+		d.MaxIdleConns,
+		d.ConnMaxLifetime,
+	)
+}
+
+func (r RedisConfig) masked() string {
+	return fmt.Sprintf(
+		"RedisConfig{URL: %s, Password: %s, DB: %d}",
+		r.URL,
+		maskSecret(r.Password),
+		r.DB,
+	)
+}
+
+func maskSecret(s string) string {
+	if len(s) == 0 {
+		return ""
+	}
+	if len(s) <= 4 {
+		return strings.Repeat("*", len(s))
+	}
+	return s[:2] + strings.Repeat("*", len(s)-4) + s[len(s)-2:]
 }
 
 func getEnv(key, fallback string) string {

@@ -37,7 +37,6 @@ func main() {
 }
 
 func run() error {
-	// Load and validate configuration
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
@@ -45,27 +44,26 @@ func run() error {
 
 	log, err := observability.NewLogger(
 		"bank-server",
-		"tempBankLogs",
-		"bankServerLogs",
+		cfg.PubSub.ProjectID,
+		cfg.PubSub.TopicID,
+		cfg.Log.Level,
 	)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "fatal error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "fatal error creating logger: %v\n", err)
 		os.Exit(1)
 	}
 	defer log.Sync()
 
-	log.Info("starting bank-server", zap.String("env", cfg.Server.Environment))
+	log.Info("starting bank-server", zap.String("env", cfg.Server.Environment), zap.String("config", cfg.String()))
 
 	ctx := context.Background()
 
-	// Database connection pool
 	db, err := repository.NewDatabase(ctx, cfg.Database)
 	if err != nil {
 		return fmt.Errorf("connect database: %w", err)
 	}
 	defer db.Close()
 
-	// Redis client
 	redisClient, err := cache.NewRedisClient(cfg.Redis)
 	if err != nil {
 		return fmt.Errorf("connect redis: %w", err)
@@ -74,24 +72,20 @@ func run() error {
 
 	cacheStore := cache.New(redisClient)
 
-	// Auth
 	tokenService := auth.NewTokenService(cfg.JWT)
 
-	// Repositories (data access layer)
 	userRepo := repository.NewUserRepository(db)
 	accountRepo := repository.NewAccountRepository(db)
 	balanceRepo := repository.NewBalanceRepository(db)
 	beneficiaryRepo := repository.NewBeneficiaryRepository(db)
 	transferModeRepo := repository.NewTransferModeRepository(db)
 
-	// Services (business logic layer)
 	authService := service.NewAuthService(userRepo, tokenService)
 	accountService := service.NewAccountService(accountRepo, balanceRepo, cacheStore, cfg.Cache, log)
 	beneficiaryService := service.NewBeneficiaryService(beneficiaryRepo, cacheStore, cfg.Cache, log)
 	transferModeService := service.NewTransferModeService(transferModeRepo, cacheStore, cfg.Cache, log)
 	healthService := service.NewHealthService(db, redisClient)
 
-	// Handlers (HTTP layer)
 	v := validator.New()
 	handlers := router.Handlers{
 		Auth:         handler.NewAuthHandler(authService, v),
@@ -101,13 +95,10 @@ func run() error {
 		Health:       handler.NewHealthHandler(healthService),
 	}
 
-	// Register Swagger docs
 	_ = docs.SwaggerInfo
 
-	// Router with middleware
 	r := router.New(cfg, handlers, tokenService, log)
 
-	// HTTP server with configurable timeouts
 	srv := &http.Server{
 		Addr:         ":" + cfg.Server.Port,
 		Handler:      r,
@@ -116,7 +107,6 @@ func run() error {
 		IdleTimeout:  cfg.Server.IdleTimeout,
 	}
 
-	// Graceful shutdown: listen for OS signals and drain in-flight requests
 	errCh := make(chan error, 1)
 	go func() {
 		log.Info("server listening", zap.String("port", cfg.Server.Port))

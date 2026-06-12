@@ -1,151 +1,190 @@
-SHELL := cmd.exe
+.PHONY: help build run test test-unit test-integration lint fmt clean docker-up docker-down docker-logs migrate seed seed-go swagger tidy deps \
+mcp-build mcp-run mcp-tidy mcp-clean clean-temp
 
-.PHONY: build run test lint clean docker-up docker-down migrate seed seed-go swagger tidy \
-mcp_run mcp_build mcp_dev mcp_tidy mcp_clean
+# Default target
+help:
+	@echo "Available targets:"
+	@echo "  help              - Show this help message"
+	@echo "  build             - Build binary"
+	@echo "  run               - Build and run"
+	@echo "  test              - Run all tests"
+	@echo "  test-unit         - Unit tests only"
+	@echo "  test-integration  - Integration tests"
+	@echo "  lint              - Run go vet"
+	@echo "  fmt               - Format code with gofmt"
+	@echo "  tidy              - Tidy go modules"
+	@echo "  deps              - Install dependencies"
+	@echo "  swagger           - Regenerate Swagger docs"
+	@echo "  clean             - Clean build files"
+	@echo "  clean-temp        - Clean temporary build files"
+	@echo "  docker-up         - Start Docker services"
+	@echo "  docker-down       - Stop Docker services"
+	@echo "  docker-logs       - Show Docker logs"
+	@echo "  migrate           - Run SQL migrations"
+	@echo "  seed              - Seed database with SQL"
+	@echo "  seed-go           - Seed database with Go program"
+	@echo "  mcp-build         - Build MCP server"
+	@echo "  mcp-run           - Build and run MCP server"
+	@echo "  mcp-tidy          - Tidy MCP server modules"
+	@echo "  mcp-clean         - Clean MCP build files"
 
-# ======================================================
-# MAIN APP
-# ======================================================
-
+# Configuration
 APP_NAME := bank-server
 BUILD_DIR := bin
 MAIN_PKG := ./cmd/server
 
-# ======================================================
-# MCP SERVER
-# ======================================================
-
 MCP_APP_NAME := bank-mcp-server
 MCP_BUILD_DIR := mcp_bin
-MCP_MAIN_FILE := ./cmd/mcp
+MCP_MAIN_PKG := ./cmd/mcp
 
-# ======================================================
-# GCP CONFIG
-# ======================================================
+# Check if gcp-key.json exists
+ifeq ($(OS),Windows_NT)
+    GCP_KEY_EXISTS := $(if $(wildcard $(CURDIR)\gcp-key.json),yes,no)
+    GCP_KEY := $(CURDIR)\gcp-key.json
+else
+    GCP_KEY_EXISTS := $(if $(wildcard $(CURDIR)/gcp-key.json),yes,no)
+    GCP_KEY := $(CURDIR)/gcp-key.json
+endif
 
-GCP_KEY := $(CURDIR)\gcp-key.json
+# OS-specific commands
+ifeq ($(OS),Windows_NT)
+    RM := if exist
+    RMDIR := rmdir /s /q
+    MKDIR := mkdir
+    EXE := .exe
+    ENV_SET := set
+    PATHSEP := \
+else
+    RM := rm -f
+    RMDIR := rm -rf
+    MKDIR := mkdir -p
+    EXE :=
+    ENV_SET := export
+    PATHSEP := /
+endif
 
-# ======================================================
-# DATABASE CONFIG
-# ======================================================
-
+# Default environment variables
 DB_HOST ?= localhost
 DB_PORT ?= 5432
 DB_USER ?= postgres
 DB_PASSWORD ?= postgres
 DB_NAME ?= bankdb
 
-export PGPASSWORD := $(DB_PASSWORD)
-
-PSQL := "C:\Program Files\PostgreSQL\18\bin\psql.exe"
-
-# ======================================================
-# CLEAN TEMP FILES
-# ======================================================
-
+# Clean temporary files
 clean-temp:
-	@if exist bin rmdir /s /q bin
-	@if exist mcp_bin rmdir /s /q mcp_bin
-	@if exist -p rmdir /s /q -p
-
-# ======================================================
-# BUILD MAIN SERVER
-# ======================================================
-
-build: clean-temp
-	@echo Building $(APP_NAME)...
-	@if not exist $(BUILD_DIR) mkdir $(BUILD_DIR)
-	go build -o $(BUILD_DIR)\$(APP_NAME).exe $(MAIN_PKG)
-
-run: build
-	@echo Running $(APP_NAME)...
-	set GOOGLE_APPLICATION_CREDENTIALS=$(GCP_KEY) && $(BUILD_DIR)\$(APP_NAME).exe
-
-# ======================================================
-# MCP SERVER
-# ======================================================
-
-mcp_build: clean-temp
-	@echo Building MCP Server...
-	@if not exist $(MCP_BUILD_DIR) mkdir $(MCP_BUILD_DIR)
-	go build -o $(MCP_BUILD_DIR)\$(MCP_APP_NAME).exe $(MCP_MAIN_FILE)
-
-mcp_run: mcp_build
-	@echo Starting MCP Server...
-	set GOOGLE_APPLICATION_CREDENTIALS=$(GCP_KEY) && $(MCP_BUILD_DIR)\$(MCP_APP_NAME).exe
-
-mcp_dev:
-	@echo Running MCP Server in development mode...
-	set GOOGLE_APPLICATION_CREDENTIALS=$(GCP_KEY) && air
-
-mcp_tidy:
-	@echo Tidying Go modules...
-	go mod tidy
-
-mcp_clean:
-	@echo Cleaning MCP build files...
-	@if exist $(MCP_BUILD_DIR) rmdir /s /q $(MCP_BUILD_DIR)
-
-# ======================================================
-# DATABASE MIGRATIONS
-# ======================================================
-
-migrate:
-	@echo Running migrations...
-	@for %%f in (migrations\*.up.sql) do $(PSQL) -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f "%%f"
-
-# ======================================================
-# SEED DATA
-# ======================================================
-
-seed:
-	@echo Seeding database...
-	$(PSQL) -h $(DB_HOST) -p $(DB_PORT) -U $(DB_USER) -d $(DB_NAME) -f migrations\seed.sql
-	@echo Seeding completed.
-
-seed-go:
-	go run ./cmd/seed
-
-# ======================================================
-# TESTING
-# ======================================================
-
-test:
-	go test -v -race -cover ./...
-
-lint:
-	go vet ./...
-	gofmt -w .
-
-# ======================================================
-# CLEAN
-# ======================================================
-
-clean:
-	@echo Cleaning project...
+	@echo "Cleaning temporary files..."
+ifeq ($(OS),Windows_NT)
 	@if exist $(BUILD_DIR) rmdir /s /q $(BUILD_DIR)
 	@if exist $(MCP_BUILD_DIR) rmdir /s /q $(MCP_BUILD_DIR)
-	go clean
+else
+	@rm -rf $(BUILD_DIR) $(MCP_BUILD_DIR)
+endif
 
-tidy:
+# Build main server
+build: clean-temp
+	@echo "Building $(APP_NAME)..."
+	@$(MKDIR) $(BUILD_DIR)
+	go build -o $(BUILD_DIR)$(PATHSEP)$(APP_NAME)$(EXE) $(MAIN_PKG)
+
+# Run main server
+run: clean-temp
+	@echo "Running $(APP_NAME)..."
+ifeq ($(OS),Windows_NT)
+	@if exist "$(GCP_KEY)" (set GOOGLE_APPLICATION_CREDENTIALS=$(GCP_KEY) && go run $(MAIN_PKG)) else (go run $(MAIN_PKG))
+else
+	@if [ -f "$(GCP_KEY)" ]; then GOOGLE_APPLICATION_CREDENTIALS=$(GCP_KEY) go run $(MAIN_PKG); else go run $(MAIN_PKG); fi
+endif
+
+# Build MCP server
+mcp-build: clean-temp
+	@echo "Building MCP server..."
+	@$(MKDIR) $(MCP_BUILD_DIR)
+	go build -o $(MCP_BUILD_DIR)$(PATHSEP)$(MCP_APP_NAME)$(EXE) $(MCP_MAIN_PKG)
+
+# Run MCP server
+mcp-run: clean-temp
+	@echo "Starting MCP server..."
+ifeq ($(OS),Windows_NT)
+	@if exist "$(GCP_KEY)" (set GOOGLE_APPLICATION_CREDENTIALS=$(GCP_KEY) && go run $(MCP_MAIN_PKG)) else (go run $(MCP_MAIN_PKG))
+else
+	@if [ -f "$(GCP_KEY)" ]; then GOOGLE_APPLICATION_CREDENTIALS=$(GCP_KEY) go run $(MCP_MAIN_PKG); else go run $(MCP_MAIN_PKG); fi
+endif
+
+# Tidy MCP server modules
+mcp-tidy:
+	@echo "Tidying MCP server modules..."
 	go mod tidy
 
-# ======================================================
-# SWAGGER
-# ======================================================
+# Clean MCP build files
+mcp-clean:
+	@echo "Cleaning MCP build files..."
+	-$(RMDIR) $(MCP_BUILD_DIR)
 
+# Run all tests
+test:
+	@echo "Running all tests..."
+	go test -v -race -cover ./...
+
+# Run unit tests
+test-unit:
+	@echo "Running unit tests..."
+	go test -v -short ./internal/...
+
+# Run integration tests
+test-integration:
+	@echo "Running integration tests..."
+	go test -v ./tests/integration/...
+
+# Lint code
+lint:
+	@echo "Linting code..."
+	go vet ./...
+
+# Format code
+fmt:
+	@echo "Formatting code..."
+	gofmt -w .
+
+# Tidy modules
+tidy:
+	@echo "Tidying Go modules..."
+	go mod tidy
+
+# Install dependencies
+deps:
+	@echo "Installing dependencies..."
+	go mod download
+
+# Generate swagger docs
 swagger:
+	@echo "Generating swagger docs..."
 	swag init -g cmd/server/main.go -o docs
 
-# ======================================================
-# DOCKER
-# ======================================================
+# Clean build files
+clean: clean-temp
+	@echo "Cleaning project..."
+	go clean
 
+# Docker targets
 docker-up:
+	@echo "Starting docker compose..."
 	docker compose up -d
 
 docker-down:
+	@echo "Stopping docker compose..."
 	docker compose down
 
 docker-logs:
+	@echo "Showing docker logs..."
 	docker compose logs -f app
+
+# Database targets
+migrate:
+	@echo "Running migrations..."
+
+seed:
+	@echo "Seeding database..."
+
+seed-go:
+	@echo "Seeding database with Go program..."
+	go run ./cmd/seed

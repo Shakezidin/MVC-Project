@@ -46,14 +46,15 @@ The project follows **Hexagonal / Clean Architecture** with clear layer separati
 ```
 bank-server/
 ├── cmd/
-│   ├── server/main.go      # Application entrypoint
-│   └── seed/main.go        # Database seeder (bcrypt passwords)
+│   ├── server/main.go      # REST API server entrypoint
+│   ├── seed/main.go        # Database seeder (bcrypt passwords)
+│   └── mcp/main.go         # MCP server entrypoint
 ├── internal/
 │   ├── auth/               # JWT + bcrypt
 │   ├── cache/              # Redis client + cache helpers
 │   ├── config/             # Environment configuration
 │   ├── handler/            # HTTP handlers
-│   ├── logger/             # Zap logger setup
+│   ├── observability/      # Zap logger + GCP PubSub integration
 │   ├── middleware/         # HTTP middleware chain
 │   ├── model/              # Domain models
 │   ├── repository/         # Data access interfaces + impl
@@ -65,6 +66,11 @@ bank-server/
 ├── migrations/             # SQL up/down migrations
 ├── scripts/                # Migration + seed scripts
 ├── docker/                 # Dockerfile
+├── mcp/                    # MCP server components
+│   ├── client/             # Bank API client
+│   ├── config/             # MCP config
+│   ├── tools/              # MCP tool implementations
+│   └── types/              # MCP types
 ├── tests/                  # Integration test structure
 ├── docs/                   # Swagger documentation
 └── docker-compose.yml
@@ -118,6 +124,16 @@ This creates test users with password `password123`:
 make run
 # or
 go run ./cmd/server
+```
+
+### 6. Run the MCP Server
+
+The project includes an MCP (Model Context Protocol) server that exposes tools for interacting with the bank API:
+
+```bash
+make mcp-run
+# or
+go run ./cmd/mcp
 ```
 
 ### Full Docker Setup
@@ -275,6 +291,8 @@ All configuration via environment variables (see `.env.example`):
 | `LOG_LEVEL` | info | debug, info, warn, error |
 | `REQUEST_TIMEOUT` | 30s | Per-request timeout |
 | `RATE_LIMIT_RPS` | 100 | Rate limit requests/sec |
+| `GCP_PROJECT_ID` | tempBankLogs | GCP project ID for PubSub logging (optional) |
+| `GCP_PUBSUB_TOPIC_ID` | bankServerLogs | GCP PubSub topic ID for logging (optional) |
 
 ## Make Commands
 
@@ -290,6 +308,12 @@ make docker-up      # Start Docker services
 make docker-down    # Stop Docker services
 make swagger        # Regenerate Swagger docs
 make tidy           # go mod tidy
+make fmt            # Format code with gofmt
+make deps           # Install dependencies
+make mcp-build      # Build MCP server
+make mcp-run        # Build and run MCP server
+make mcp-tidy       # Tidy MCP server modules
+make mcp-clean      # Clean MCP build files
 ```
 
 ## Testing
