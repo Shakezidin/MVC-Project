@@ -95,18 +95,3 @@ func NewLogger(
 
 	return logger, nil
 }
-func WithRequestContext(
-	log *zap.Logger,
-	requestID string,
-	method string,
-	path string,
-	userID string,
-) *zap.Logger {
-
-	return log.With(
-		zap.String("request_id", requestID),
-		zap.String("method", method),
-		zap.String("path", path),
-		zap.String("user_id", userID),
-	)
-}

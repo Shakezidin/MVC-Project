@@ -23,16 +23,10 @@ func main() {
 	*/
 	cfg := config.Load()
 
-	// Initialize structured logger
-	// log, err := logger.New(cfg.Log.Level)
-	// if err != nil {
-	// 	fmt.Fprintf(os.Stderr, "fatal error: %v\n", err)
-	// 	os.Exit(1)
-	// }
 	log, err := observability.NewLogger(
 		"MCP-server",
 		"tempBankLogs",
-		"MyTopic",
+		"MCPServerLogs",
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "fatal error: %v\n", err)

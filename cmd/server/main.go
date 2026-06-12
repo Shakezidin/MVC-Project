@@ -46,7 +46,7 @@ func run() error {
 	log, err := observability.NewLogger(
 		"bank-server",
 		"tempBankLogs",
-		"MyTopic",
+		"bankServerLogs",
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "fatal error: %v\n", err)
