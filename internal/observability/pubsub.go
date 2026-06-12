@@ -3,14 +3,16 @@ package observability
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
-	cloudpubsub "cloud.google.com/go/pubsub"
+	cloudpubsub "cloud.google.com/go/pubsub/v2"
 )
 
 type PubSubPublisher struct {
 	client *cloudpubsub.Client
-	topic  *cloudpubsub.Topic
+	pubsub *cloudpubsub.Publisher
 	ctx    context.Context
+	topic  string
 }
 
 func NewPubSubPublisher(
@@ -29,10 +31,14 @@ func NewPubSubPublisher(
 		return nil, err
 	}
 
+	topic := fmt.Sprintf("projects/%s/topics/%s", projectID, topicID)
+	publisher := client.Publisher(topic)
+
 	return &PubSubPublisher{
 		client: client,
-		topic:  client.Topic(topicID),
+		pubsub: publisher,
 		ctx:    ctx,
+		topic:  topic,
 	}, nil
 }
 
@@ -45,7 +51,7 @@ func (p *PubSubPublisher) Publish(
 		return err
 	}
 
-	result := p.topic.Publish(
+	result := p.pubsub.Publish(
 		p.ctx,
 		&cloudpubsub.Message{
 			Data: bytes,
